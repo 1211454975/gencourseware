@@ -1,0 +1,15 @@
+{
+  "title": "Understanding Walking Robots and Motion Planning",
+  "content": "Today, we're going to learn about how walking robots plan their movements. Imagine you're playing a video game where you control a robot. You want the robot to walk from point A to point B without falling over. Scientists and engineers use something called Model Predictive Control (MPC) to help robots do this. MPC is like a game plan that the robot follows to move smoothly and efficiently.",
+  "type": "content",
+  "key_points": [
+    "Walking robots use MPC to plan their movements.",
+    "MPC helps minimize energy use and ensures the robot doesn't fall.",
+    "There are different ways to use MPC, some with strict plans and others that adapt as the robot moves.",
+    "Planning movements in real-time is challenging because robots are complex."
+  ],
+  "examples": [
+    "Think of MPC as a GPS for robots, constantly updating the best path.",
+    "Like a soccer player adjusting their run to catch a ball, robots adjust their steps based on their current position."
+  ]
+}

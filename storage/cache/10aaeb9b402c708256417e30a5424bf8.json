@@ -1,0 +1,14 @@
+{
+  "title": "Understanding Robot Walking Dynamics",
+  "content": "Today, we're going to learn about how robots walk on flat ground. Imagine a robot trying to walk straight. The ground pushes back on the robot's feet, helping it move forward without falling. This push is called a 'contact force'. We'll see how these forces help the robot stay balanced.",
+  "type": "content",
+  "key_points": [
+    "Contact forces from the ground help the robot walk.",
+    "The Center of Pressure (CoP) is where the ground's push is strongest.",
+    "The robot's movement and balance depend on the CoP and its own motion."
+  ],
+  "examples": [
+    "Think of walking on a tightrope. You adjust your arms to stay balanced, similar to how a robot adjusts its CoP.",
+    "If you push a shopping cart, the force you apply makes it move. Similarly, the ground's force helps the robot move."
+  ]
+}

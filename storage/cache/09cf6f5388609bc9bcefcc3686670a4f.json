@@ -1,0 +1,15 @@
+{
+  "title": "Understanding Robot Walking: The ZMP Approach",
+  "content": "Today, we're going to learn about how robots walk, focusing on a method called the ZMP (Zero Moment Point) approach. Imagine trying to walk without falling over. Robots face the same challenge! The ZMP approach helps robots plan their steps to stay balanced. It's like planning where to place your feet when walking on a slippery surface to avoid slipping.",
+  "type": "content",
+  "key_points": [
+    "The ZMP approach helps robots walk without falling by planning where to place their feet.",
+    "It uses the concept of the Center of Pressure (CoP), which is similar to how we balance by adjusting our foot placement.",
+    "This method was successfully tested on the Waseda University WL-12R robot.",
+    "Later, it was improved to consider not just the position but also the speed of the robot's center of mass for better balance."
+  ],
+  "examples": [
+    "Think of walking on ice: you carefully plan each step to avoid slipping. Robots use the ZMP approach to plan their steps similarly.",
+    "The WL-12R robot used this method to walk smoothly by adjusting its trunk rotations based on pre-planned leg movements."
+  ]
+}

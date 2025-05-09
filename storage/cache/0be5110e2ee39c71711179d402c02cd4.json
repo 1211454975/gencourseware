@@ -1,0 +1,15 @@
+{
+  "title": "Understanding Robot Balance and Fall Prevention",
+  "content": "This slide explains how robots maintain balance and what happens when they start to fall. Imagine trying to stand on one foot; if you lean too far, you'll start to fall. Robots work similarly. They have a 'center of mass' (CoM), and if this moves beyond a certain point without support, the robot will fall. The math shows that once the CoM moves too far, it keeps moving faster in that direction, making the fall inevitable. To prevent falls, robots need to stay in 'viable states' where they can adjust their position to stay balanced.",
+  "type": "content",
+  "key_points": [
+    "Robots have a center of mass (CoM) that affects their balance.",
+    "If the CoM moves beyond a support point without correction, the robot will fall.",
+    "The movement of the CoM can be predicted with math, showing it moves faster over time once it starts to fall.",
+    "To avoid falling, robots must stay in positions where they can adjust their CoM to stay balanced, known as 'viable states'."
+  ],
+  "examples": [
+    "Standing on one foot: if you lean too far, you'll start to fall, similar to a robot's CoM moving beyond its support.",
+    "Catching yourself before falling: like a robot adjusting its position to stay in a viable state and prevent a fall."
+  ]
+}

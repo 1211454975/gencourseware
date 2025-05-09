@@ -1,0 +1,14 @@
+{
+  "title": "Understanding Robot Walking Adaptations",
+  "content": "This slide explains how robots can adjust their walking to handle changes or disturbances in their environment. Instead of having fixed steps, robots can change where they place their feet to stay balanced and move smoothly.",
+  "type": "content",
+  "key_points": [
+    "Robots can adapt their foot placement to handle changes in the environment.",
+    "Changing foot placement helps satisfy balance conditions and minimize unwanted motion.",
+    "This approach allows robots to recover from strong disturbances."
+  ],
+  "examples": [
+    "A Kawada HRP-2 robot adjusts its steps to stay balanced when pushed.",
+    "Using math to decide the best place to step next to keep moving forward without falling."
+  ]
+}

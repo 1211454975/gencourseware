@@ -1,0 +1,15 @@
+{
+  "title": "Understanding Robot Motion Basics",
+  "content": "Robots move in ways that are often planned ahead of time. One important part of this planning is deciding how the robot's center of mass (CoM) moves, especially side to side. This movement is made to follow a specific path that helps keep the robot balanced. Scientists and engineers use math to figure out the best path for the CoM to follow, making sure the robot doesn't fall over. Different robots, like the Toyota Partner, Sony QRIO, and Kawada HRP-2, use similar but slightly different methods to plan their movements.",
+  "type": "content",
+  "key_points": [
+    "Robot motion is often pre-planned.",
+    "The center of mass (CoM) movement is crucial for balance.",
+    "Different robots use similar methods with small differences to plan motion."
+  ],
+  "examples": [
+    "Toyota Partner robot plans motion with a focus on repeating the same movement cycle.",
+    "Sony QRIO robot simplifies planning by treating the robot as a single point moving at a constant height.",
+    "Kawada HRP-2 robot uses a predefined path for the CoM to follow, making sure it stays balanced."
+  ]
+}

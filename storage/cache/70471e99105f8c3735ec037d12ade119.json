@@ -1,0 +1,15 @@
+{
+  "title": "Understanding Robot Walking Motion",
+  "content": "Today, we're going to learn how robots, like the Aldebaran Nao or the Boston Dynamics Atlas, plan their walking motions. It's all about balancing and moving smoothly without falling over. Imagine trying to walk on a tightrope; you'd want to move carefully to stay balanced. Robots do something similar by calculating how to move their center of mass (CoM) and adjusting their steps based on where they plan to place their feet next.",
+  "type": "content",
+  "key_points": [
+    "Robots plan their walking by calculating the movement of their center of mass (CoM).",
+    "They adjust their steps to stay balanced, similar to how we might adjust our steps on a tightrope.",
+    "Advanced math helps robots predict the best path for smooth walking.",
+    "This planning allows robots to adapt to changes or pushes without falling over."
+  ],
+  "examples": [
+    "Aldebaran Nao robot uses this method to walk smoothly.",
+    "Boston Dynamics Atlas robot adjusted its steps during the DARPA Robotics Challenge using similar calculations."
+  ]
+}
