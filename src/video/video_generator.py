@@ -31,11 +31,18 @@ class VideoGenerator:
         self.slide_duration = self.total_duration / len(slides)
         
         # 确保路径是字符串类型
+        logger.debug(f"OUTPUT_DIR 类型: {type(OUTPUT_DIR)}")
+        logger.debug(f"OUTPUT_DIR 值: {OUTPUT_DIR}")
+        logger.debug(f"TEMP_DIR 类型: {type(TEMP_DIR)}")
+        logger.debug(f"TEMP_DIR 值: {TEMP_DIR}")
+        
         self.output_dir = str(OUTPUT_DIR)
         self.temp_dir = str(TEMP_DIR)
         
-        logger.debug(f"输出目录: {self.output_dir}")
-        logger.debug(f"临时目录: {self.temp_dir}")
+        logger.debug(f"self.output_dir 类型: {type(self.output_dir)}")
+        logger.debug(f"self.output_dir 值: {self.output_dir}")
+        logger.debug(f"self.temp_dir 类型: {type(self.temp_dir)}")
+        logger.debug(f"self.temp_dir 值: {self.temp_dir}")
         
         self._setup_directories()
         
@@ -94,45 +101,47 @@ class VideoGenerator:
             content = str(slide.get('content', ''))
             
             # 创建图片剪辑
-            image_path = self._create_slide_image(slide, self.temp_dir, index)
-            if not isinstance(image_path, str):
-                raise ValueError(f"图片路径必须是字符串类型，当前类型: {type(image_path)}")
+            logger.debug(f"临时目录类型: {type(self.temp_dir)}")
+            logger.debug(f"临时目录值: {self.temp_dir}")
+            
+            try:
+                # 创建包含标题和内容的图片
+                with Image.new('RGB', (self.width, self.height), self.background_color) as image:
+                    draw = ImageDraw.Draw(image)
+                    
+                    # 绘制标题
+                    if title:
+                        title_width = draw.textlength(title, font=self.title_font)
+                        title_x = (self.width - title_width) // 2
+                        draw.text((title_x, 50), title, font=self.title_font, fill=self.text_color)
+                    
+                    # 绘制内容
+                    if content:
+                        content_lines = self._wrap_text(content, self.content_font, self.width - 200)
+                        y = 200
+                        for line in content_lines:
+                            draw.text((100, y), line, font=self.content_font, fill=self.text_color)
+                            y += 50
+                    
+                    # 保存图片
+                    image_path = os.path.join(self.temp_dir, f"slide_{index:03d}_with_text.png")
+                    image.save(image_path)
+                    logger.debug(f"保存带文本的图片到: {image_path}")
                 
-            clip = ImageClip(image_path)
-            
-            # 设置持续时间
-            clip = clip.set_duration(self.slide_duration)
-            
-            # 添加标题
-            title = TextClip(
-                title,
-                fontsize=self.title_font_size,
-                color=self.text_color,
-                bg_color=self.background_color,
-                size=(self.width, 100),
-                method='caption'
-            )
-            title = title.set_position(('center', 50))
-            title = title.set_duration(self.slide_duration)
-            
-            # 添加内容
-            content = TextClip(
-                content,
-                fontsize=self.content_font_size,
-                color=self.text_color,
-                bg_color=self.background_color,
-                size=(self.width - 200, self.height - 200),
-                method='caption'
-            )
-            content = content.set_position(('center', 200))
-            content = content.set_duration(self.slide_duration)
-            
-            # 合成视频片段
-            final_clip = CompositeVideoClip([clip, title, content])
-            return final_clip
+                # 创建视频片段
+                clip = ImageClip(image_path)
+                clip = clip.set_duration(self.slide_duration)
+                logger.debug("成功创建视频片段")
+                
+                return clip
+                
+            except Exception as e:
+                logger.error(f"创建幻灯片图片时出错: {str(e)}")
+                raise
             
         except Exception as e:
             logger.error(f"创建幻灯片 {index} 时出错: {str(e)}")
+            logger.error(f"幻灯片数据: {slide}")
             raise
 
     def generate(self) -> str:
@@ -217,7 +226,11 @@ class VideoGenerator:
         """创建幻灯片图片"""
         try:
             # 确保临时目录是字符串
+            logger.debug(f"输入临时目录类型: {type(temp_dir)}")
+            logger.debug(f"输入临时目录值: {temp_dir}")
             temp_dir = str(temp_dir)
+            logger.debug(f"转换后临时目录类型: {type(temp_dir)}")
+            logger.debug(f"转换后临时目录值: {temp_dir}")
             
             # 确保幻灯片数据是字典类型
             if not isinstance(slide, dict):
@@ -225,34 +238,63 @@ class VideoGenerator:
             
             # 确保临时目录存在
             if not os.path.exists(temp_dir):
+                logger.debug(f"创建临时目录: {temp_dir}")
                 os.makedirs(temp_dir)
                 
             # 创建空白图片
-            image = Image.new('RGB', (self.width, self.height), self.background_color)
-            draw = ImageDraw.Draw(image)
-            
-            # 根据幻灯片类型绘制内容
-            slide_type = str(slide.get('type', 'content'))  # 确保类型是字符串
-            
-            if slide_type == 'title':
-                self._draw_title_slide(draw, slide, self.title_font, self.content_font)
-            elif slide_type == 'toc':
-                self._draw_toc_slide(draw, slide, self.title_font, self.content_font)
-            elif slide_type == 'content':
-                self._draw_content_slide(draw, slide, self.title_font, self.content_font)
-            elif slide_type == 'summary':
-                self._draw_summary_slide(draw, slide, self.title_font, self.content_font)
-            else:
-                logger.warning(f"未知的幻灯片类型: {slide_type}，使用内容类型")
-                self._draw_content_slide(draw, slide, self.title_font, self.content_font)
-            
-            # 保存图片，使用索引确保文件名唯一
-            output_path = os.path.join(temp_dir, f"slide_{index:03d}_{slide_type}.png")
-            image.save(output_path)
-            return output_path
+            with Image.new('RGB', (self.width, self.height), self.background_color) as image:
+                draw = ImageDraw.Draw(image)
+                logger.debug("成功创建空白图片")
+                
+                # 根据幻灯片类型绘制内容
+                slide_type = str(slide.get('type', 'content'))  # 确保类型是字符串
+                logger.debug(f"幻灯片类型: {slide_type}")
+                
+                try:
+                    if slide_type == 'title':
+                        self._draw_title_slide(draw, slide, self.title_font, self.content_font)
+                    elif slide_type == 'toc':
+                        self._draw_toc_slide(draw, slide, self.title_font, self.content_font)
+                    elif slide_type == 'content':
+                        self._draw_content_slide(draw, slide, self.title_font, self.content_font)
+                    elif slide_type == 'summary':
+                        self._draw_summary_slide(draw, slide, self.title_font, self.content_font)
+                    else:
+                        logger.warning(f"未知的幻灯片类型: {slide_type}，使用内容类型")
+                        self._draw_content_slide(draw, slide, self.title_font, self.content_font)
+                    logger.debug("成功绘制幻灯片内容")
+                except Exception as e:
+                    logger.error(f"绘制幻灯片内容时出错: {str(e)}")
+                    raise
+                
+                # 保存图片，使用索引确保文件名唯一
+                try:
+                    output_path = os.path.join(temp_dir, f"slide_{index:03d}_{slide_type}.png")
+                    logger.debug(f"输出路径类型: {type(output_path)}")
+                    logger.debug(f"输出路径值: {output_path}")
+                    
+                    # 确保输出目录存在
+                    output_dir = os.path.dirname(output_path)
+                    if not os.path.exists(output_dir):
+                        logger.debug(f"创建输出目录: {output_dir}")
+                        os.makedirs(output_dir)
+                    
+                    # 保存图片
+                    image.save(output_path)
+                    logger.debug(f"成功保存图片到: {output_path}")
+                    
+                    # 验证文件是否成功保存
+                    if not os.path.exists(output_path):
+                        raise FileNotFoundError(f"图片文件未能成功保存: {output_path}")
+                    
+                    return output_path
+                except Exception as e:
+                    logger.error(f"保存图片时出错: {str(e)}")
+                    raise
             
         except Exception as e:
             logger.error(f"创建幻灯片图片时出错: {str(e)}")
+            logger.error(f"幻灯片数据: {slide}")
             raise
 
     def _draw_title_slide(self, draw: ImageDraw.ImageDraw, slide: Dict,
