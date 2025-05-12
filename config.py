@@ -46,7 +46,7 @@ VIDEO_CONFIG = {
 
 # API 配置
 API_CONFIG = {
-    'url': "https://api.deepseek.com/v1/chat/completions",
+    'url': "https://api.deepseek.com/chat/completions",
     'model': "deepseek-chat",
     'temperature': 0.7
 }

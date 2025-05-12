@@ -6,7 +6,8 @@ import tempfile
 import platform
 import sys
 from pathlib import Path
-
+import time
+import uuid
 # 添加项目根目录到 Python 路径
 project_root = str(Path(__file__).parent.parent.parent)
 if project_root not in sys.path:
@@ -88,66 +89,117 @@ class VideoGenerator:
             dir_path = str(dir_path)  # 确保是字符串
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-
     def _create_slide_clip(self, slide: Dict, index: int) -> ImageClip:
-        """创建单个幻灯片的视频片段"""
         try:
-            # 确保幻灯片数据是字典类型
-            if not isinstance(slide, dict):
-                raise ValueError(f"幻灯片数据必须是字典类型，当前类型: {type(slide)}")
+            from io import BytesIO
+            import numpy as np
             
-            # 确保必要的字段存在且为字符串类型
-            title = str(slide.get('title', ''))
-            content = str(slide.get('content', ''))
+            # 使用内存流替代文件操作
+            buffer = BytesIO()
             
-            # 创建图片剪辑
-            logger.debug(f"临时目录类型: {type(self.temp_dir)}")
-            logger.debug(f"临时目录值: {self.temp_dir}")
-            
-            try:
-                # 创建包含标题和内容的图片
-                with Image.new('RGB', (self.width, self.height), self.background_color) as image:
-                    draw = ImageDraw.Draw(image)
-                    
-                    # 绘制标题
-                    if title:
-                        title_width = draw.textlength(title, font=self.title_font)
-                        title_x = (self.width - title_width) // 2
-                        draw.text((title_x, 50), title, font=self.title_font, fill=self.text_color)
-                    
-                    # 绘制内容
-                    if content:
-                        content_lines = self._wrap_text(content, self.content_font, self.width - 200)
-                        y = 200
-                        for line in content_lines:
-                            draw.text((100, y), line, font=self.content_font, fill=self.text_color)
-                            y += 50
-                    
-                    # 保存图片
-                    image_path = os.path.join(self.temp_dir, f"slide_{index:03d}_with_text.png")
-                    image.save(image_path)
-                    logger.debug(f"保存带文本的图片到: {image_path}")
+            with Image.new('RGB', (self.width, self.height), self.background_color) as image:
+                draw = ImageDraw.Draw(image)
                 
-                # 创建视频片段
-                clip = ImageClip(image_path)
-                clip = clip.set_duration(self.slide_duration)
-                logger.debug("成功创建视频片段")
+                # 绘制标题
+                title = slide.get('title', '')
+                if title:
+                    title_width = draw.textlength(title, font=self.title_font)
+                    title_x = (self.width - title_width) // 2
+                    draw.text((title_x, 50), title, font=self.title_font, fill=self.text_color)
                 
-                return clip
+                # 绘制内容
+                content = slide.get('content', '')
+                if content:
+                    content_lines = self._wrap_text(content, self.content_font, self.width - 200)
+                    y = 200
+                    for line in content_lines:
+                        draw.text((100, y), line, font=self.content_font, fill=self.text_color)
+                        y += 50
                 
-            except Exception as e:
-                logger.error(f"创建幻灯片图片时出错: {str(e)}")
-                raise
+                # 将图像转为numpy数组
+                image.save(buffer, format='PNG')
+                buffer.seek(0)
+                img_array = np.array(Image.open(buffer))
+                
+                # 从内存数组创建ImageClip
+                return ImageClip(img_array).set_duration(self.slide_duration)
             
         except Exception as e:
             logger.error(f"创建幻灯片 {index} 时出错: {str(e)}")
-            logger.error(f"幻灯片数据: {slide}")
+            raise
+        finally:
+            buffer.close()  # 确保释放内存资源
+
+
+    # 清理方法需要同步修改
+    def _cleanup_temp_files(self):
+        """此方法现在只需清理可能存在的残留文件"""
+        try:
+            temp_dir = str(self.temp_dir)
+            if os.path.exists(temp_dir):
+                for file in os.listdir(temp_dir):
+                    if file.startswith("slide_") and file.endswith(".png"):
+                        try:
+                            os.remove(os.path.join(temp_dir, file))
+                        except Exception as e:
+                            logger.warning(f"清理残留文件失败: {str(e)}")
+        except Exception as e:
+            logger.error(f"清理残留文件时出错: {str(e)}")
+
+    def _create_slide_clip0(self, slide: Dict, index: int) -> ImageClip:
+        image_path = None
+        try:
+            image_path = os.path.join(
+                self.temp_dir, 
+                f"slide_{index:03d}_{uuid.uuid4().hex}_with_text.png"  # 唯一文件名
+            )
+            image = Image.new('RGB', (self.width, self.height), self.background_color)
+            draw = ImageDraw.Draw(image)
+                
+            # 绘制标题
+            title = slide.get('title', '')
+            if title:
+                title_width = draw.textlength(title, font=self.title_font)
+                title_x = (self.width - title_width) // 2
+                draw.text((title_x, 50), title, font=self.title_font, fill=self.text_color)
+            
+            # 绘制内容
+            content = slide.get('content', '') or "内容待补充"  # 空内容兜底
+                
+                
+            if content:
+                content_lines = self._wrap_text(content, self.content_font, self.width - 200)
+                y = 200
+                for line in content_lines:
+                    draw.text((100, y), line, font=self.content_font, fill=self.text_color)
+                    y += 50
+                
+            # 保存后立即验证文件
+            with open(image_path, 'wb') as f:
+                image.save(f, format='PNG')
+
+            
+            # time.sleep(0.1)
+            if not Path(image_path).exists():
+                raise FileNotFoundError(f"临时文件生成失败: {image_path}")
+            # 验证文件可读性
+            with Image.open(image_path) as test_image:
+                test_image.verify()
+
+            # 创建ImageClip
+            return ImageClip(image_path).set_duration(self.slide_duration)
+            
+        except Exception as e:
+            logger.error(f"创建幻灯片 {index} 时出错: {str(e)}")
+            if Path(image_path).exists():
+                try:
+                    Path(image_path).unlink()
+                except Exception as cleanup_error:
+                    logger.warning(f"清理临时文件失败: {cleanup_error}")
+
             raise
 
     def generate(self) -> str:
-        """生成完整的视频"""
-        logger.info("开始生成视频")
-        
         try:
             # 检查幻灯片数据
             if not isinstance(self.slides, list):
@@ -165,6 +217,7 @@ class VideoGenerator:
                         raise ValueError(f"幻灯片数据必须是字典类型，当前类型: {type(slide)}")
                     
                     clip = self._create_slide_clip(slide, i)
+                    logger.info("_create_slide_clip===========> {i}")
                     clips.append(clip)
                 except KeyboardInterrupt:
                     logger.info("生成过程被用户中断")
@@ -176,9 +229,7 @@ class VideoGenerator:
             if not clips:
                 raise ValueError("没有生成任何视频片段")
             
-            # 连接所有视频片段
-            final_video = concatenate_videoclips(clips)
-            
+           
             # 生成输出文件路径
             output_dir = str(self.output_dir)  # 确保是字符串
             output_path = os.path.join(output_dir, "output.mp4")
@@ -186,12 +237,14 @@ class VideoGenerator:
             
             try:
                 # 导出视频
+                # 由于 final_video 未定义，需要先将 clips 合并为最终视频
+                final_video = concatenate_videoclips(clips)
                 final_video.write_videofile(
                     output_path,
                     fps=self.fps,
                     codec='libx264',
                     audio=False,
-                    logger=None  # 禁用 moviepy 的进度输出
+                    logger=None  # 修正为 None 或移除该参数
                 )
                 
                 logger.info(f"视频生成完成: {output_path}")
@@ -207,7 +260,7 @@ class VideoGenerator:
             # 清理临时文件
             self._cleanup_temp_files()
 
-    def _cleanup_temp_files(self):
+    def _cleanup_temp_files0(self):
         """清理临时文件"""
         try:
             temp_dir = str(self.temp_dir)  # 确保是字符串
@@ -223,25 +276,8 @@ class VideoGenerator:
             logger.error(f"清理临时文件时出错: {str(e)}")
 
     def _create_slide_image(self, slide: Dict, temp_dir: str, index: int) -> str:
-        """创建幻灯片图片"""
+        output_path = ""
         try:
-            # 确保临时目录是字符串
-            logger.debug(f"输入临时目录类型: {type(temp_dir)}")
-            logger.debug(f"输入临时目录值: {temp_dir}")
-            temp_dir = str(temp_dir)
-            logger.debug(f"转换后临时目录类型: {type(temp_dir)}")
-            logger.debug(f"转换后临时目录值: {temp_dir}")
-            
-            # 确保幻灯片数据是字典类型
-            if not isinstance(slide, dict):
-                raise ValueError(f"幻灯片数据必须是字典类型，当前类型: {type(slide)}")
-            
-            # 确保临时目录存在
-            if not os.path.exists(temp_dir):
-                logger.debug(f"创建临时目录: {temp_dir}")
-                os.makedirs(temp_dir)
-                
-            # 创建空白图片
             with Image.new('RGB', (self.width, self.height), self.background_color) as image:
                 draw = ImageDraw.Draw(image)
                 logger.debug("成功创建空白图片")
@@ -269,7 +305,7 @@ class VideoGenerator:
                 
                 # 保存图片，使用索引确保文件名唯一
                 try:
-                    output_path = os.path.join(temp_dir, f"slide_{index:03d}_{slide_type}.png")
+                    output_path = str(Path(temp_dir) / f"slide_{index:03d}_{slide_type}.png")  # 路径定义提前
                     logger.debug(f"输出路径类型: {type(output_path)}")
                     logger.debug(f"输出路径值: {output_path}")
                     
@@ -279,19 +315,25 @@ class VideoGenerator:
                         logger.debug(f"创建输出目录: {output_dir}")
                         os.makedirs(output_dir)
                     
-                    # 保存图片
+                    # 保存后立即验证
                     image.save(output_path)
+                    if not Path(output_path).is_file():
+                        raise FileNotFoundError(f"临时图片保存失败: {output_path}")
+                    
                     logger.debug(f"成功保存图片到: {output_path}")
-                    
-                    # 验证文件是否成功保存
-                    if not os.path.exists(output_path):
-                        raise FileNotFoundError(f"图片文件未能成功保存: {output_path}")
-                    
                     return output_path
+                
                 except Exception as e:
                     logger.error(f"保存图片时出错: {str(e)}")
                     raise
+
+
             
+            # # 移动文件检查到上下文管理器内部
+            # if not Path(output_path).exists():
+            #     raise FileNotFoundError(f"临时图片生成失败: {output_path}")
+            
+            # return ImageClip(str(Path(output_path).resolve())).set_duration(self.slide_duration)
         except Exception as e:
             logger.error(f"创建幻灯片图片时出错: {str(e)}")
             logger.error(f"幻灯片数据: {slide}")
@@ -420,45 +462,32 @@ class VideoGenerator:
             raise
 
     def _wrap_text(self, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> List[str]:
-        """文本自动换行，支持中英文"""
-        if not text:
-            return []
-            
+        words = []
+        current_word = []
+        for char in text:
+            if char.isspace():
+                if current_word:
+                    words.append(''.join(current_word))
+                    current_word = []
+                words.append(char)
+            else:
+                current_word.append(char)
+        
         lines = []
         current_line = []
         current_width = 0
         
-        for char in text:
-            char_width = font.getlength(char)
-            
-            # 处理换行符
-            if char == '\n':
-                if current_line:
-                    lines.append(''.join(current_line))
-                    current_line = []
-                    current_width = 0
-                continue
-            
-            # 处理空格
-            if char.isspace():
-                if current_line:
-                    lines.append(''.join(current_line))
-                    current_line = []
-                    current_width = 0
-                continue
-            
-            # 检查是否需要换行
-            if current_width + char_width > max_width:
-                if current_line:
-                    lines.append(''.join(current_line))
-                    current_line = []
-                    current_width = 0
-            
-            current_line.append(char)
-            current_width += char_width
+        for word in words:
+            word_width = font.getlength(word)
+            if current_width + word_width > max_width:
+                lines.append(''.join(current_line))
+                current_line = [word]
+                current_width = word_width
+            else:
+                current_line.append(word)
+                current_width += word_width
         
-        # 添加最后一行
         if current_line:
             lines.append(''.join(current_line))
         
-        return lines 
+        return lines
